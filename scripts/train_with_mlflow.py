@@ -8,7 +8,7 @@ import xgboost as xgb
 
 
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.metrics import mean_squared_error, r2_score, root_mean_squared_error
 
 TRAIN_DIR = os.environ.get("SM_CHANNEL_TRAIN", "/opt/ml/input/data/train")
 MODEL_DIR = os.environ.get("SM_MODEL_DIR", "/opt/ml/model")
@@ -65,8 +65,8 @@ if mlflow:
             model = xgb.XGBRegressor(**params)
             model.fit(X_train, y_train)
 
-            preds = model.predict(X_test)
-            rmse = mean_squared_error(y_test, preds, squared=False)
+            preds = model.predict(X_test)          
+            rmse = root_mean_squared_error(y_test, preds)
             r2 = r2_score(y_test, preds)
 
             mlflow.log_metric("rmse", float(rmse))
