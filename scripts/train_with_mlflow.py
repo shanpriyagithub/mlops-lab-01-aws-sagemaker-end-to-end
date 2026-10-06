@@ -98,9 +98,3 @@ else:
     os.makedirs(MODEL_DIR, exist_ok=True)
     joblib.dump(model, os.path.join(MODEL_DIR, "model.joblib"))
     print("[OK] Trained model saved (MLflow disabled)")
-import joblib
-import os
-
-model_path = os.path.join(os.environ["SM_MODEL_DIR"], "model.joblib")
-
-joblib.dump(model, model_path)
