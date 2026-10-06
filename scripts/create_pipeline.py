@@ -58,14 +58,27 @@ try:
     execution = pipeline.start()
     print("Pipeline started:", execution.arn)
     
+try:
     execution.wait()
 
-    print("Pipeline execution:")
-    print(execution.describe())
+except Exception as e:
+    print("\n========================================")
+    print("PIPELINE EXECUTION FAILED")
+    print("========================================")
+    print("Execution ARN:", execution.arn)
+    print("Error:", e)
 
-    print("\nPipeline steps:")
+    print("\nStep details:")
+
     for step in execution.list_steps():
-        print(step)
+        print("----------------------------------------")
+        print("Step:", step.get("StepName"))
+        print("Status:", step.get("StepStatus"))
+        print("Failure:", step.get("FailureReason"))
+
+    raise
+
+print("\nPipeline completed successfully!")
 
 except Exception as e:
     print(f"ERROR: Pipeline creation/start failed: {str(e)}")
