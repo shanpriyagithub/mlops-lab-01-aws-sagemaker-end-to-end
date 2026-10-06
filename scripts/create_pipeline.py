@@ -49,6 +49,10 @@ try:
         name=PIPELINE_NAME,
         steps=[step_train],
         sagemaker_session=sess
+        default_bucket_info=sagemaker.workflow.pipeline.DefaultBucketInfo(
+        bucket=BUCKET,
+        object_key_prefix="pipeline-artifacts"
+    )
     )
 
     print(f"DEBUG: Upserting pipeline '{PIPELINE_NAME}' in region '{REGION}'...")
