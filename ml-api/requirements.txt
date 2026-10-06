@@ -3,3 +3,6 @@ uvicorn
 boto3
 jinja2
 python-multipart
+xgboost>=1.7.0
+mlflow>=2.0.0
+
