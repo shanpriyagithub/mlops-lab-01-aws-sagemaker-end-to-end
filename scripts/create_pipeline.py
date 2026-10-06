@@ -57,6 +57,15 @@ try:
     print(f"DEBUG: Starting pipeline execution for '{PIPELINE_NAME}'...")
     execution = pipeline.start()
     print("Pipeline started:", execution.arn)
+    
+    execution.wait()
+
+    print("Pipeline execution:")
+    print(execution.describe())
+
+    print("\nPipeline steps:")
+    for step in execution.list_steps():
+        print(step)
 
 except Exception as e:
     print(f"ERROR: Pipeline creation/start failed: {str(e)}")
