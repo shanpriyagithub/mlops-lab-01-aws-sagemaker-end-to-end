@@ -51,7 +51,6 @@ try:
         sagemaker_session=sess,
         default_bucket=BUCKET
     )
-    )
 
     print(f"DEBUG: Upserting pipeline '{PIPELINE_NAME}' in region '{REGION}'...")
     pipeline.upsert(role_arn=ROLE_ARN)
