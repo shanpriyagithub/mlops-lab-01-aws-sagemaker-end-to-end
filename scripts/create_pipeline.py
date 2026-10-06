@@ -36,7 +36,7 @@ try:
         py_version="py3",
         sagemaker_session=sess,
         environment={"MLFLOW_TRACKING_URI": MLFLOW_URI},
-        output_path=f"s3://{BUCKET}/models/"
+        output_path=f"s3://{BUCKET}/models"
     )
 
     step_train = TrainingStep(
