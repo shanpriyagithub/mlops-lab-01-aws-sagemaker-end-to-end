@@ -48,8 +48,7 @@ try:
     pipeline = Pipeline(
         name=PIPELINE_NAME,
         steps=[step_train],
-        sagemaker_session=sess,
-        default_bucket=BUCKET
+        sagemaker_session=sess
     )
 
     print(f"DEBUG: Upserting pipeline '{PIPELINE_NAME}' in region '{REGION}'...")
