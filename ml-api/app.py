@@ -6,7 +6,7 @@ from fastapi.templating import Jinja2Templates
 
 # SageMaker endpoint name
 ENDPOINT_NAME = "wine-quality-endpoint"
-REGION = "ap-south-1"
+REGION = "us-east-2"
 
 # SageMaker runtime client
 runtime = boto3.client(
