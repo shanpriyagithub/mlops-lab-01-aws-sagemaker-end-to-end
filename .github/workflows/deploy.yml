@@ -20,7 +20,7 @@ jobs:
       uses: aws-actions/configure-aws-credentials@v4
       with:
         role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-        aws-region: ap-south-1
+        aws-region: us-east-2
 
     - name: Install dependencies
       run: |
@@ -30,7 +30,7 @@ jobs:
 
     - name: Deploy endpoint
       env:
-        AWS_REGION: ap-south-1
+        AWS_REGION: us-east-2
         SAGEMAKER_ROLE_ARN: ${{ secrets.SAGEMAKER_ROLE_ARN }}
       run: |
         python deploy_latest_model.py
