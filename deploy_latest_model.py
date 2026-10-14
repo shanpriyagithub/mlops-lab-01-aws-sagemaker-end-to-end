@@ -18,7 +18,7 @@ boto_session = boto3.Session(region_name=region)
 sm = boto_session.client("sagemaker")
 s3 = boto_session.client("s3")
 
-IMAGE_URI = f"720646828776.dkr.ecr.{region}.amazonaws.com/sagemaker-scikit-learn:1.2-1-cpu-py3"
+IMAGE_URI = f"257758044811.dkr.ecr.us-east-2.amazonaws.com/sagemaker-scikit-learn:1.2-1-cpu-py3"
 
 print(f"Region: {region}")
 print(f"Role: {role}")
