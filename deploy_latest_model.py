@@ -9,7 +9,7 @@ import tarfile
 import tempfile
 import shutil
 
-region = os.environ["AWS_REGION"]
+region = "us-east-2"
 role = os.environ["SAGEMAKER_ROLE_ARN"]
 endpoint_name = "wine-quality-endpoint"
 model_name = "wine-quality-model"
