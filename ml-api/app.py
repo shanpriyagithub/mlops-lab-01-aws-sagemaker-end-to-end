@@ -14,16 +14,18 @@ runtime = boto3.client(
     region_name=REGION
 )
 
+# Create the app BEFORE defining routes
 app = FastAPI()
 
 templates = Jinja2Templates(directory="templates")
 
-# Home page
+
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     return templates.TemplateResponse(
+        request=request,
         name="index.html",
-        request=request
+        context={}
     )
     
 # Prediction API
