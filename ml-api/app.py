@@ -61,21 +61,13 @@ FEATURE_NAMES = [
 # Routes
 # --------------------------------------------------
 
-@app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
-    """Display the wine prediction form."""
-
+@app.get("/")
+def home(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="index.html",
-        context={
-            "request": request,
-            "prediction": None,
-            "error": None,
-            "features": {},
-        },
+        context={"request": request},
     )
-
 
 @app.get("/health")
 async def health():
