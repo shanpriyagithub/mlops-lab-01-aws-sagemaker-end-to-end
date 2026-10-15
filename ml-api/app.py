@@ -140,16 +140,11 @@ async def predict(
         except json.JSONDecodeError:
             prediction = result
 
-        return templates.TemplateResponse(
-            request=request,
-            name="index.html",
-            context={
-                "request": request,
-                "prediction": prediction,
-                "error": None,
-                "features": features,
-            },
-        )
+          return templates.TemplateResponse(
+        request=request,
+        name="index.html",
+        context={"request": request}
+)
 
     except ValueError as exc:
         logger.warning("Invalid wine features: %s", exc)
