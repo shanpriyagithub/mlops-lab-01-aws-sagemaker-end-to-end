@@ -133,9 +133,12 @@ def validate_features(data: dict) -> list[float]:
 # --------------------------------------------------
 
 @app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
-    return render_page(request)
-
+def home(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="index.html",
+        context={"request": request},
+    )
 
 @app.get("/health")
 async def health():
