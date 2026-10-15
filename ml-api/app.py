@@ -20,13 +20,13 @@ templates = Jinja2Templates(directory="templates")
 
 
 # Home page
-@app.get("/", response_class=HTMLResponse)
+@app.get("/")
 def home(request: Request):
     return templates.TemplateResponse(
-        "index.html",
-        {"request": request}
+        request=request,
+        name="index.html",
+        context={}
     )
-
 
 # Prediction API
 @app.post("/predict")
