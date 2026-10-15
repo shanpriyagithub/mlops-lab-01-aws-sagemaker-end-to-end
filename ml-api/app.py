@@ -1,4 +1,4 @@
-
+```python
 import json
 import logging
 import math
@@ -30,19 +30,17 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Wine Quality Prediction API",
-    description="Predict wine quality using an AWS SageMaker endpoint.",
+    description="Predict wine quality using AWS SageMaker.",
     version="1.0.0",
 )
 
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
-# Uses the EC2 instance IAM role or configured AWS credentials.
 sagemaker_runtime = boto3.client(
     "sagemaker-runtime",
     region_name=REGION,
 )
 
-# The feature order must match the order used during model training.
 FEATURE_NAMES = [
     "fixed_acidity",
     "volatile_acidity",
@@ -58,27 +56,99 @@ FEATURE_NAMES = [
 
 
 # --------------------------------------------------
-# Routes
+# Helpers
+# --------------------------------------------------
+
+def render_page(
+    request: Request,
+    prediction: Any = None,
+    error: str = None,
+    features: dict = None,
+    status_code: int = 200,
+):
+    """Render index.html with a consistent context."""
+
+    return templates.TemplateResponse(
+        request=request,
+        name="index.html",
+        context={
+            "request": request,
+            "prediction": prediction,
+            "error": error,
+            "features": features or {},
+        },
+        status_code=status_code,
+    )
+
+
+def get_prediction(values: list[float]) -> Any:
+    """Call SageMaker and parse its response."""
+
+    payload = ",".join(str(value) for value in values)
+
+    response = sagemaker_runtime.invoke_endpoint(
+        EndpointName=ENDPOINT_NAME,
+        ContentType="text/csv",
+        Accept="text/csv",
+        Body=payload,
+    )
+
+    result = response["Body"].read().decode("utf-8").strip()
+
+    try:
+        parsed = json.loads(result)
+
+        if isinstance(parsed, dict):
+            return parsed.get(
+                "prediction",
+                parsed.get("predictions", parsed),
+            )
+
+        return parsed
+
+    except json.JSONDecodeError:
+        return result
+
+
+def validate_features(data: dict) -> list[float]:
+    """Validate and return values in model training order."""
+
+    missing = [name for name in FEATURE_NAMES if name not in data]
+
+    if missing:
+        raise ValueError(
+            "Missing required features: " + ", ".join(missing)
+        )
+
+    values = [float(data[name]) for name in FEATURE_NAMES]
+
+    if not all(math.isfinite(value) for value in values):
+        raise ValueError("All feature values must be finite numbers.")
+
+    return values
+
+
+# --------------------------------------------------
+# Web pages and health check
 # --------------------------------------------------
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    return templates.TemplateResponse(
-        name="index.html",
-        request=request,
-        context={"request": request},
-    )
+    return render_page(request)
+
 
 @app.get("/health")
 async def health():
-    """Check whether the API application is running."""
-
     return {
         "status": "healthy",
         "region": REGION,
         "endpoint": ENDPOINT_NAME,
     }
 
+
+# --------------------------------------------------
+# HTML prediction form
+# --------------------------------------------------
 
 @app.post("/predict", response_class=HTMLResponse)
 async def predict(
@@ -94,8 +164,6 @@ async def predict(
     pH: float = Form(...),
     sulphates: float = Form(...),
 ):
-    """Validate wine features and request a SageMaker prediction."""
-
     features = {
         "fixed_acidity": fixed_acidity,
         "volatile_acidity": volatile_acidity,
@@ -110,129 +178,67 @@ async def predict(
     }
 
     try:
-        values = [float(features[name]) for name in FEATURE_NAMES]
+        values = validate_features(features)
+        prediction = get_prediction(values)
 
-        if not all(math.isfinite(value) for value in values):
-            raise ValueError("All feature values must be finite numbers.")
-
-        # CSV format: one row, with features in training order.
-        payload = ",".join(str(value) for value in values)
-
-        response = sagemaker_runtime.invoke_endpoint(
-            EndpointName=ENDPOINT_NAME,
-            ContentType="text/csv",
-            Accept="text/csv",
-            Body=payload,
+        return render_page(
+            request=request,
+            prediction=prediction,
+            features=features,
         )
-
-        result = response["Body"].read().decode("utf-8").strip()
-
-        # Supports a simple numeric prediction or a JSON response.
-        try:
-            parsed: Any = json.loads(result)
-            if isinstance(parsed, dict):
-                prediction = parsed.get(
-                    "prediction",
-                    parsed.get("predictions", parsed),
-                )
-            else:
-                prediction = parsed
-        except json.JSONDecodeError:
-            prediction = result
-
-          return templates.TemplateResponse(
-        request=request,
-        name="index.html",
-        context={"request": request}
-)
 
     except ValueError as exc:
         logger.warning("Invalid wine features: %s", exc)
-        return templates.TemplateResponse(
+
+        return render_page(
             request=request,
-            name="index.html",
-            context={
-                "request": request,
-                "prediction": None,
-                "error": str(exc),
-                "features": features,
-            },
+            error=str(exc),
+            features=features,
             status_code=400,
         )
 
-    except (BotoCoreError, ClientError) as exc:
+    except (BotoCoreError, ClientError):
         logger.exception("SageMaker prediction request failed")
-        return templates.TemplateResponse(
+
+        return render_page(
             request=request,
-            name="index.html",
-            context={
-                "request": request,
-                "prediction": None,
-                "error": (
-                    "Unable to get a prediction from SageMaker. "
-                    "Check the endpoint status and EC2 IAM permissions."
-                ),
-                "features": features,
-            },
+            error=(
+                "Unable to get a prediction from SageMaker. "
+                "Check that the endpoint is InService and that "
+                "the EC2 IAM role has permission to invoke it."
+            ),
+            features=features,
             status_code=502,
         )
 
     except Exception:
         logger.exception("Unexpected prediction error")
-        return templates.TemplateResponse(
+
+        return render_page(
             request=request,
-            name="index.html",
-            context={
-                "request": request,
-                "prediction": None,
-                "error": "An unexpected error occurred. Check the application logs.",
-                "features": features,
-            },
+            error="An unexpected error occurred. Check application logs.",
+            features=features,
             status_code=500,
         )
 
 
 # --------------------------------------------------
-# JSON API for testing and integration
+# JSON prediction API
 # --------------------------------------------------
 
 @app.post("/predict-json")
 async def predict_json(request: Request):
-    """Accept a JSON object containing all ten wine features."""
-
     try:
         data = await request.json()
 
-        missing = [name for name in FEATURE_NAMES if name not in data]
-        if missing:
+        if not isinstance(data, dict):
             return JSONResponse(
                 status_code=400,
-                content={"error": "Missing features", "fields": missing},
+                content={"error": "Expected a JSON object."},
             )
 
-        values = [float(data[name]) for name in FEATURE_NAMES]
-
-        if not all(math.isfinite(value) for value in values):
-            return JSONResponse(
-                status_code=400,
-                content={"error": "All feature values must be finite numbers."},
-            )
-
-        payload = ",".join(str(value) for value in values)
-
-        response = sagemaker_runtime.invoke_endpoint(
-            EndpointName=ENDPOINT_NAME,
-            ContentType="text/csv",
-            Accept="text/csv",
-            Body=payload,
-        )
-
-        result = response["Body"].read().decode("utf-8").strip()
-
-        try:
-            prediction = json.loads(result)
-        except json.JSONDecodeError:
-            prediction = result
+        values = validate_features(data)
+        prediction = get_prediction(values)
 
         return {
             "prediction": prediction,
@@ -240,22 +246,25 @@ async def predict_json(request: Request):
             "region": REGION,
         }
 
+    except ValueError as exc:
+        return JSONResponse(
+            status_code=400,
+            content={"error": str(exc)},
+        )
+
     except (BotoCoreError, ClientError):
         logger.exception("SageMaker JSON prediction request failed")
+
         return JSONResponse(
             status_code=502,
             content={"error": "SageMaker prediction request failed."},
         )
 
-    except (ValueError, TypeError):
-        return JSONResponse(
-            status_code=400,
-            content={"error": "Invalid feature values."},
-        )
-
     except Exception:
         logger.exception("Unexpected JSON prediction error")
+
         return JSONResponse(
             status_code=500,
             content={"error": "Internal server error."},
         )
+```
