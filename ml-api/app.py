@@ -18,16 +18,14 @@ app = FastAPI()
 
 templates = Jinja2Templates(directory="templates")
 
-
 # Home page
-@app.get("/")
-def home(request: Request):
+@app.get("/", response_class=HTMLResponse)
+async def home(request: Request):
     return templates.TemplateResponse(
-        request=request,
         name="index.html",
-        context={}
+        request=request
     )
-
+    
 # Prediction API
 @app.post("/predict")
 def predict(
